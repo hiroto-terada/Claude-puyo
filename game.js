@@ -19,7 +19,6 @@ function makePair() {
   return [rndColor(), rndColor()];
 }
 
-// ===== Blop Drawing =====
 function drawBlop(ctx, x, y, colorIdx, size = CELL, alpha = 1) {
   const cx = x + size / 2;
   const cy = y + size / 2;
@@ -83,6 +82,116 @@ function drawBlop(ctx, x, y, colorIdx, size = CELL, alpha = 1) {
   ctx.restore();
 }
 
+// ===== Angel ascension animation =====
+function drawAngelBlop(ctx, x, y, colorIdx, size, t) {
+  // t: 0→1 over animation duration
+  const rise  = t * size * 3.0;
+  const cx    = x + size / 2;
+  const cy    = y + size / 2 - rise;
+  const r     = size * 0.42;
+  const col   = COLORS[colorIdx];
+  const alpha = Math.max(0, 1 - t);
+  const flap  = Math.sin(t * Math.PI * 6) * r * 0.18; // wing flap
+
+  ctx.save();
+
+  // Expanding golden aura
+  ctx.globalAlpha = alpha * 0.35 * (1 - t * 0.8);
+  const ag = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * (1.8 + t * 1.6));
+  ag.addColorStop(0, 'rgba(255,230,80,0.7)');
+  ag.addColorStop(1, 'rgba(255,230,80,0)');
+  ctx.beginPath(); ctx.arc(cx, cy, r * (1.8 + t * 1.6), 0, Math.PI * 2);
+  ctx.fillStyle = ag; ctx.fill();
+
+  ctx.globalAlpha = alpha;
+
+  // Wings
+  ctx.fillStyle = 'rgba(255,255,240,0.90)';
+  ctx.shadowColor = '#ffe870'; ctx.shadowBlur = 8;
+  // left wing
+  ctx.beginPath();
+  ctx.moveTo(cx - r * 0.35, cy - r * 0.05);
+  ctx.quadraticCurveTo(cx - r * 1.9, cy - r * 0.85 + flap, cx - r * 0.15, cy - r * 0.55);
+  ctx.quadraticCurveTo(cx - r * 1.1, cy - r * 0.1 + flap * 0.5, cx - r * 0.35, cy - r * 0.05);
+  ctx.fill();
+  // right wing
+  ctx.beginPath();
+  ctx.moveTo(cx + r * 0.35, cy - r * 0.05);
+  ctx.quadraticCurveTo(cx + r * 1.9, cy - r * 0.85 + flap, cx + r * 0.15, cy - r * 0.55);
+  ctx.quadraticCurveTo(cx + r * 1.1, cy - r * 0.1 + flap * 0.5, cx + r * 0.35, cy - r * 0.05);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Body
+  ctx.shadowColor = col; ctx.shadowBlur = 10;
+  const grad = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.05, cx, cy, r);
+  grad.addColorStop(0, lighten(col, 0.5));
+  grad.addColorStop(0.6, col);
+  grad.addColorStop(1, darken(col, 0.5));
+  ctx.beginPath();
+  for (let a = 0; a <= Math.PI * 2; a += 0.1) {
+    const w  = 1 + 0.06 * Math.sin(a * 3 + colorIdx);
+    const px = cx + Math.cos(a) * r * w;
+    const py = cy + Math.sin(a) * r * w;
+    if (a === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.closePath(); ctx.fillStyle = grad; ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Highlight
+  ctx.beginPath();
+  ctx.ellipse(cx - r*0.25, cy - r*0.28, r*0.22, r*0.14, -Math.PI/4, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.fill();
+
+  // Eyes: happy closed (∪ shape)
+  ctx.strokeStyle = '#111';
+  ctx.lineWidth = Math.max(1, size * 0.034);
+  const eyeY = cy - r * 0.05;
+  [-1, 1].forEach(side => {
+    ctx.beginPath();
+    ctx.arc(cx + side * r * 0.22, eyeY, r * 0.1, Math.PI, 0);
+    ctx.stroke();
+  });
+
+  // Big smile
+  ctx.beginPath();
+  ctx.arc(cx, cy + r * 0.18, r * 0.24, 0.1, Math.PI - 0.1);
+  ctx.stroke();
+
+  // Halo
+  ctx.beginPath();
+  ctx.ellipse(cx, cy - r * 1.08, r * 0.46, r * 0.12, 0, 0, Math.PI * 2);
+  ctx.strokeStyle = '#ffe870';
+  ctx.lineWidth = Math.max(1.5, size * 0.044);
+  ctx.shadowColor = '#ffe870'; ctx.shadowBlur = 12;
+  ctx.stroke(); ctx.shadowBlur = 0;
+
+  // Sparkle stars ✨
+  for (let i = 0; i < 6; i++) {
+    const angle  = (i / 6) * Math.PI * 2 + t * Math.PI * 1.5;
+    const dist   = r * (0.9 + t * 2.2);
+    const sx     = cx + Math.cos(angle) * dist;
+    const sy     = cy + Math.sin(angle) * dist * 0.55;
+    const st     = (t * 1.5 + i / 6) % 1;
+    const ss     = r * 0.13 * (1 - st * 0.7);
+    ctx.globalAlpha = alpha * (1 - st) * 0.9;
+    ctx.fillStyle = '#ffe870';
+    ctx.shadowColor = '#ffe870'; ctx.shadowBlur = 4;
+    ctx.beginPath();
+    for (let j = 0; j < 8; j++) {
+      const sr = j % 2 === 0 ? ss : ss * 0.38;
+      const sa = (j / 8) * Math.PI * 2;
+      const spx = sx + Math.cos(sa) * sr;
+      const spy = sy + Math.sin(sa) * sr;
+      if (j === 0) ctx.moveTo(spx, spy); else ctx.lineTo(spx, spy);
+    }
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.shadowBlur = 0;
+  ctx.restore();
+}
+
+// ===== Blop Drawing =====
 function lighten(hex, amt) {
   const n = parseInt(hex.slice(1), 16);
   const r = Math.min(255, (n >> 16) + Math.round(255 * amt));
@@ -374,7 +483,7 @@ class Player {
     this.clearAnim = {
       groups,
       timer: 0,
-      duration: 500,
+      duration: 700,
       chainNum: this.chainCount,
       garbageToSend: garbageAmount,
     };
@@ -471,25 +580,31 @@ class Player {
       ctx.beginPath(); ctx.moveTo(c * CELL, 0); ctx.lineTo(c * CELL, H); ctx.stroke();
     }
 
-    // Board cells
+    // Build clearing-cell lookup: "r,c" → colorIdx
+    const clearMap = new Map();
+    if (this.clearAnim) {
+      for (const g of this.clearAnim.groups) {
+        for (const [cr, cc] of g.cells) clearMap.set(`${cr},${cc}`, g.color);
+      }
+    }
+
+    // Board cells (skip clearing cells — drawn as angels below)
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
         const val = this.board.get(r, c);
         if (val === null) continue;
-        if (val === -1) {
-          drawGarbage(ctx, c * CELL, r * CELL);
-        } else {
-          // Check if in clearing animation
-          let alpha = 1;
-          if (this.clearAnim) {
-            const inGroup = this.clearAnim.groups.some(g => g.cells.some(([gr,gc]) => gr===r && gc===c));
-            if (inGroup) {
-              const t = this.clearAnim.timer / this.clearAnim.duration;
-              alpha = 1 - t * 0.8 + 0.2 * Math.sin(t * Math.PI * 6);
-            }
-          }
-          drawBlop(ctx, c * CELL, r * CELL, val, CELL, alpha);
-        }
+        if (clearMap.has(`${r},${c}`)) continue; // drawn as angel
+        if (val === -1) drawGarbage(ctx, c * CELL, r * CELL);
+        else            drawBlop(ctx, c * CELL, r * CELL, val, CELL);
+      }
+    }
+
+    // Draw ascending angels on top
+    if (this.clearAnim) {
+      const t = this.clearAnim.timer / this.clearAnim.duration;
+      for (const [key, colorIdx] of clearMap) {
+        const [r, c] = key.split(',').map(Number);
+        drawAngelBlop(ctx, c * CELL, r * CELL, colorIdx, CELL, t);
       }
     }
 
