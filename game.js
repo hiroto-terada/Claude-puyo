@@ -400,6 +400,8 @@ class Player {
     this.aiTimer = 0;
     this.aiTarget = null;
     this.totalGarbageSent = 0;
+    this.randomFastEnabled = false;
+    this.isZooming = false;
   }
 
   spawn() {
@@ -410,6 +412,7 @@ class Player {
       this.state = 'dead';
       return;
     }
+    this.isZooming = this.randomFastEnabled && Math.random() < 0.30;
     this.state = 'falling';
     this.locking = false;
     this.lockTimer = 0;
@@ -449,6 +452,7 @@ class Player {
       if (r >= 0) this.board.set(r, c, col);
     }
     this.current = null;
+    this.isZooming = false;
     // Drop garbage after locking
     if (this.pendingGarbage > 0) {
       this.board.addGarbage(this.pendingGarbage);
@@ -515,7 +519,7 @@ class Player {
 
     if (this.state !== 'falling') return;
 
-    const interval = fastDrop ? DROP_INTERVAL_FAST : DROP_INTERVAL_NORMAL;
+    const interval = (fastDrop || this.isZooming) ? DROP_INTERVAL_FAST : DROP_INTERVAL_NORMAL;
     this.dropTimer += dt;
 
     if (this.dropTimer >= interval) {
@@ -612,6 +616,37 @@ class Player {
     if (this.current) {
       for (const [r, c, col] of this.current.cells()) {
         if (r >= 0) drawBlop(ctx, c * CELL, r * CELL, col, CELL, fastDrop ? 0.7 : 1);
+      }
+      // Zooming (random fast) indicator — pulsing yellow ring + ⚡
+      if (this.isZooming) {
+        const pulse = 0.55 + 0.45 * Math.sin(Date.now() * 0.014);
+        for (const [r, c] of this.current.cells().map(([r, c]) => [r, c])) {
+          if (r < 0) continue;
+          const bx = c * CELL + CELL / 2, by = r * CELL + CELL / 2;
+          ctx.save();
+          ctx.strokeStyle = `rgba(255,204,0,${pulse})`;
+          ctx.lineWidth = 3;
+          ctx.shadowColor = '#ffcc00';
+          ctx.shadowBlur = 10 + pulse * 8;
+          ctx.beginPath();
+          ctx.arc(bx, by, CELL * 0.46, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+        // ⚡ label above the piece
+        const topR = Math.min(...this.current.cells().map(([r]) => r));
+        if (topR >= 0) {
+          const topC = this.current.cells().find(([r]) => r === topR)[1];
+          ctx.save();
+          ctx.font = `bold ${CELL * 0.42}px sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'bottom';
+          ctx.fillStyle = `rgba(255,204,0,${pulse})`;
+          ctx.shadowColor = '#ffcc00';
+          ctx.shadowBlur = 8;
+          ctx.fillText('⚡', topC * CELL + CELL / 2, topR * CELL);
+          ctx.restore();
+        }
       }
       // Ghost piece
       const ghost = this.current.clone();
@@ -729,6 +764,7 @@ class Game {
 
     this.p1Fast = false;
     this.p2Fast = false;
+    this.randomFast = false;
 
     this.initUI();
     this.setupKeys();
@@ -741,6 +777,13 @@ class Game {
     document.getElementById('btn-retry').addEventListener('click', () => this.start(this.mode));
     window.addEventListener('resize', () => this.scaleGameArea());
     this.isMobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+
+    const turboBtn = document.getElementById('opt-turbo');
+    turboBtn.addEventListener('click', () => {
+      this.randomFast = !this.randomFast;
+      turboBtn.textContent = this.randomFast ? 'ON' : 'OFF';
+      turboBtn.classList.toggle('on', this.randomFast);
+    });
   }
 
   setupTouchControls(mode) {
@@ -843,6 +886,10 @@ class Game {
     // Wire garbage exchange
     p1._onGarbage = (n) => p2.receiveGarbage(n);
     p2._onGarbage = (n) => p1.receiveGarbage(n);
+
+    // Apply options
+    p1.randomFastEnabled = this.randomFast;
+    p2.randomFastEnabled = this.randomFast;
 
     this.players = [p1, p2];
     this.running = true;
