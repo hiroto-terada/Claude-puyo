@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BLOP BATTLE - 落ちゲー対戦</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>BLOP BATTLE</h1>
+      <p class="subtitle">落ちゲー対戦</p>
+    </header>
+
+    <!-- メニュー画面 -->
+    <div id="screen-menu" class="screen active">
+      <div class="menu-box">
+        <h2>BLOP BATTLE</h2>
+        <p>同じ色のBLOPを4つ以上つなげて消そう！</p>
+        <div class="blop-preview">
+          <div class="blop-demo b1"></div>
+          <div class="blop-demo b2"></div>
+          <div class="blop-demo b3"></div>
+          <div class="blop-demo b4"></div>
+          <div class="blop-demo b5"></div>
+        </div>
+        <button id="btn-vs-cpu" class="btn-primary">CPU対戦</button>
+        <button id="btn-vs-2p" class="btn-secondary">2P対戦</button>
+        <div class="controls-hint">
+          <h3>操作方法</h3>
+          <div class="controls-grid">
+            <div>
+              <strong>Player 1</strong>
+              <p>← → : 移動</p>
+              <p>↓ : 落下</p>
+              <p>Z : 左回転</p>
+              <p>X : 右回転</p>
+            </div>
+            <div>
+              <strong>Player 2 / CPU</strong>
+              <p>A D : 移動</p>
+              <p>S : 落下</p>
+              <p>Q : 左回転</p>
+              <p>E : 右回転</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ゲーム画面 -->
+    <div id="screen-game" class="screen">
+      <div class="game-area">
+        <!-- Player 1 -->
+        <div class="player-section" id="p1-section">
+          <div class="player-header">
+            <span class="player-label p1-label">PLAYER 1</span>
+            <span class="player-score" id="p1-score">0</span>
+          </div>
+          <div class="field-container">
+            <div class="next-panel">
+              <div class="next-label">NEXT</div>
+              <canvas id="p1-next" width="80" height="80"></canvas>
+            </div>
+            <canvas id="p1-field" width="240" height="480"></canvas>
+          </div>
+          <div class="chain-display" id="p1-chain"></div>
+        </div>
+
+        <!-- 中央パネル -->
+        <div class="center-panel">
+          <div class="vs-badge">VS</div>
+          <div id="countdown" class="countdown hidden">3</div>
+          <div id="result-display" class="result-display hidden"></div>
+          <button id="btn-menu" class="btn-small">メニューへ</button>
+          <button id="btn-retry" class="btn-small">もう一度</button>
+        </div>
+
+        <!-- Player 2 / CPU -->
+        <div class="player-section" id="p2-section">
+          <div class="player-header">
+            <span class="player-score" id="p2-score">0</span>
+            <span class="player-label p2-label" id="p2-label">PLAYER 2</span>
+          </div>
+          <div class="field-container reverse">
+            <canvas id="p2-field" width="240" height="480"></canvas>
+            <div class="next-panel">
+              <div class="next-label">NEXT</div>
+              <canvas id="p2-next" width="80" height="80"></canvas>
+            </div>
+          </div>
+          <div class="chain-display" id="p2-chain"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
