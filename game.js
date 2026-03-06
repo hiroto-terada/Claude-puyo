@@ -628,6 +628,76 @@ class Game {
     document.getElementById('btn-menu').addEventListener('click', () => this.goMenu());
     document.getElementById('btn-retry').addEventListener('click', () => this.start(this.mode));
     window.addEventListener('resize', () => this.scaleGameArea());
+    this.isMobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+  }
+
+  setupTouchControls(mode) {
+    const tc = document.getElementById('touch-controls');
+    if (!this.isMobile) { tc.classList.add('hidden'); return; }
+
+    tc.classList.remove('hidden');
+    const p2pad = document.getElementById('touch-p2');
+    if (mode === '2p') {
+      p2pad.classList.remove('hidden');
+      tc.classList.add('mode-2p');
+    } else {
+      p2pad.classList.add('hidden');
+      tc.classList.remove('mode-2p');
+    }
+
+    // Remove old listeners by replacing nodes
+    const rebind = (id, fn) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const clone = el.cloneNode(true);
+      el.parentNode.replaceChild(clone, el);
+      return clone;
+    };
+
+    const addRepeat = (id, action) => {
+      const el = rebind(id);
+      if (!el) return;
+      let timer = null, interval = null;
+      const start = (e) => {
+        e.preventDefault();
+        action();
+        timer = setTimeout(() => { interval = setInterval(action, 80); }, 200);
+      };
+      const stop = (e) => {
+        e.preventDefault();
+        clearTimeout(timer); clearInterval(interval);
+      };
+      el.addEventListener('touchstart', start, { passive: false });
+      el.addEventListener('touchend', stop, { passive: false });
+      el.addEventListener('touchcancel', stop, { passive: false });
+    };
+
+    const addTap = (id, action) => {
+      const el = rebind(id);
+      if (!el) return;
+      el.addEventListener('touchstart', (e) => { e.preventDefault(); action(); }, { passive: false });
+    };
+
+    const addHold = (id, onStart, onEnd) => {
+      const el = rebind(id);
+      if (!el) return;
+      el.addEventListener('touchstart', (e) => { e.preventDefault(); onStart(); }, { passive: false });
+      el.addEventListener('touchend', (e) => { e.preventDefault(); onEnd(); }, { passive: false });
+      el.addEventListener('touchcancel', (e) => { e.preventDefault(); onEnd(); }, { passive: false });
+    };
+
+    const p = (i) => this.players[i];
+    addRepeat('t-p1-left',  () => { if (p(0)?.state==='falling') p(0).tryMove(0,-1); });
+    addRepeat('t-p1-right', () => { if (p(0)?.state==='falling') p(0).tryMove(0, 1); });
+    addTap('t-p1-rotl',     () => { if (p(0)?.state==='falling') p(0).tryRotate(-1); });
+    addTap('t-p1-rotr',     () => { if (p(0)?.state==='falling') p(0).tryRotate( 1); });
+    addHold('t-p1-drop',    () => { this.p1Fast = true; }, () => { this.p1Fast = false; });
+
+    addRepeat('t-p2-left',  () => { if (p(1)?.state==='falling') p(1).tryMove(0,-1); });
+    addRepeat('t-p2-right', () => { if (p(1)?.state==='falling') p(1).tryMove(0, 1); });
+    addTap('t-p2-rotl',     () => { if (p(1)?.state==='falling') p(1).tryRotate(-1); });
+    addTap('t-p2-rotr',     () => { if (p(1)?.state==='falling') p(1).tryRotate( 1); });
+    addHold('t-p2-drop',    () => { this.p2Fast = true; }, () => { this.p2Fast = false; });
   }
 
   goMenu() {
@@ -640,8 +710,9 @@ class Game {
     this.mode = mode;
     document.getElementById('screen-menu').classList.remove('active');
     document.getElementById('screen-game').classList.add('active');
-    // Scale after DOM update
-    requestAnimationFrame(() => this.scaleGameArea());
+    this.setupTouchControls(mode);
+    // Scale after DOM update (double rAF ensures layout is complete)
+    requestAnimationFrame(() => requestAnimationFrame(() => this.scaleGameArea()));
     document.getElementById('result-display').classList.add('hidden');
     document.getElementById('result-display').className = 'result-display hidden';
     document.getElementById('p2-label').textContent = mode === 'cpu' ? 'CPU' : 'PLAYER 2';
@@ -769,22 +840,32 @@ class Game {
   scaleGameArea() {
     const scaler = document.getElementById('game-scaler');
     const area = document.querySelector('.game-area');
+    const tc = document.getElementById('touch-controls');
     if (!scaler || !area) return;
+
     // Reset to measure natural size
     area.style.transform = '';
     area.style.marginLeft = '';
     const naturalW = area.scrollWidth;
     const naturalH = area.scrollHeight;
-    const available = scaler.clientWidth;
-    const scale = Math.min(1, available / naturalW);
+
+    const availW = scaler.clientWidth;
+    const tcH = (tc && !tc.classList.contains('hidden')) ? tc.offsetHeight : 0;
+    const headerH = document.querySelector('header')?.offsetHeight || 0;
+    const availH = window.innerHeight - headerH - tcH - 24; // 24px padding
+
+    const scaleW = availW / naturalW;
+    const scaleH = availH / naturalH;
+    const scale = Math.min(1, scaleW, scaleH);
+
     if (scale < 1) {
       area.style.transform = `scale(${scale})`;
       area.style.transformOrigin = 'top left';
-      // Center horizontally: (available - naturalW * scale) / 2
-      const offset = (available - naturalW * scale) / 2;
+      const offset = (availW - naturalW * scale) / 2;
       area.style.marginLeft = offset + 'px';
       scaler.style.height = Math.ceil(naturalH * scale) + 'px';
     } else {
+      area.style.marginLeft = '';
       scaler.style.height = '';
     }
   }
