@@ -215,15 +215,12 @@ class Board {
   }
 
   addGarbage(count) {
-    // Add garbage rows from top
+    // Push existing content up, add garbage rows at the bottom
     while (count > 0) {
-      const row = this.grid.shift();
-      // If the popped row wasn't empty, game might be over soon
+      this.grid.shift(); // remove topmost row (usually empty)
       const garbageRow = Array(COLS).fill(-1);
-      // Leave one gap randomly so it's beatable
-      garbageRow[Math.floor(Math.random() * COLS)] = null;
-      this.grid.unshift(garbageRow);
-      // Shift existing rows up
+      garbageRow[Math.floor(Math.random() * COLS)] = null; // one gap
+      this.grid.push(garbageRow); // add at bottom → stack rises visually
       count--;
     }
   }
