@@ -627,6 +627,7 @@ class Game {
     document.getElementById('btn-vs-2p').addEventListener('click', () => this.start('2p'));
     document.getElementById('btn-menu').addEventListener('click', () => this.goMenu());
     document.getElementById('btn-retry').addEventListener('click', () => this.start(this.mode));
+    window.addEventListener('resize', () => this.scaleGameArea());
   }
 
   goMenu() {
@@ -639,6 +640,8 @@ class Game {
     this.mode = mode;
     document.getElementById('screen-menu').classList.remove('active');
     document.getElementById('screen-game').classList.add('active');
+    // Scale after DOM update
+    requestAnimationFrame(() => this.scaleGameArea());
     document.getElementById('result-display').classList.add('hidden');
     document.getElementById('result-display').className = 'result-display hidden';
     document.getElementById('p2-label').textContent = mode === 'cpu' ? 'CPU' : 'PLAYER 2';
@@ -760,6 +763,29 @@ class Game {
     } else {
       el.textContent = 'P1 WIN!';
       el.classList.add('p1-win');
+    }
+  }
+
+  scaleGameArea() {
+    const scaler = document.getElementById('game-scaler');
+    const area = document.querySelector('.game-area');
+    if (!scaler || !area) return;
+    // Reset to measure natural size
+    area.style.transform = '';
+    area.style.marginLeft = '';
+    const naturalW = area.scrollWidth;
+    const naturalH = area.scrollHeight;
+    const available = scaler.clientWidth;
+    const scale = Math.min(1, available / naturalW);
+    if (scale < 1) {
+      area.style.transform = `scale(${scale})`;
+      area.style.transformOrigin = 'top left';
+      // Center horizontally: (available - naturalW * scale) / 2
+      const offset = (available - naturalW * scale) / 2;
+      area.style.marginLeft = offset + 'px';
+      scaler.style.height = Math.ceil(naturalH * scale) + 'px';
+    } else {
+      scaler.style.height = '';
     }
   }
 }

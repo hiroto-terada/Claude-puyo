@@ -266,9 +266,14 @@ canvas#p1-next, canvas#p2-next {
 }
 
 /* ===== Responsive ===== */
+#game-scaler {
+  width: 100%;
+  overflow: hidden;
+}
+
 @media (max-width: 700px) {
-  canvas#p1-field, canvas#p2-field { width: 150px; height: 300px; }
-  canvas#p1-next, canvas#p2-next { width: 50px; height: 50px; }
-  .center-panel { padding-top: 30px; }
-  header h1 { font-size: 1.6rem; }
+  body { padding: 8px; }
+  header { padding: 6px 0 4px; }
+  header h1 { font-size: 1.4rem; letter-spacing: 2px; }
+  .subtitle { font-size: 0.75rem; }
 }
